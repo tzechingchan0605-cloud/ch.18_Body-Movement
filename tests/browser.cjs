@@ -47,8 +47,20 @@ assert.ok(await page.locator('#fallback').isHidden());console.log('PASS one enla
  for(const a of r.labelLayout){const radial=a.world.map((x,i)=>x-a.mid[i]);if(Math.abs(Math.hypot(...radial)-a.bulge)>1e-9)throw Error('Anchor not on muscle ring');if(Math.abs(radial.reduce((v,x,i)=>v+x*a.axis[i],0))>1e-9)throw Error('Anchor off muscle ring plane');const q=r.project(a.world);if(Math.hypot(q[0]-a.point[0],q[1]-a.point[1])>1e-9)throw Error('Leader endpoint projection incorrect');if(a.label[0]!==22&&a.label[0]!==578)throw Error('Label not outside diagram');}
  for(let i=0;i<16;i++)for(let j=i+1;j<16;j++){const a=r.labelLayout[i].label,b=r.labelLayout[j].label;if(Math.hypot(a[0]-b[0],a[1]-b[1])<24)throw Error('Overlapping labels');}
  }
+ r.render(tasks[0].from,{yaw:-25,layers:{labels:true,muscle:true}});
+ for(const a of r.labelLayout.filter(a=>a.posterior)){
+ if(a.occluded)throw Error('N/P label endpoint occluded in the default view');
+ const rgba=new Uint8Array(4),ratio=c.width/c.clientWidth;
+ r.gl.readPixels(Math.floor(a.point[0]*ratio),c.height-1-Math.floor(a.point[1]*ratio),1,1,r.gl.RGBA,r.gl.UNSIGNED_BYTE,rgba);
+ if(!(rgba[2]>rgba[0]*1.5&&rgba[1]>rgba[0]))throw Error('N/P label points to bone rather than blue muscle');
+ }
  box.remove();return true;});assert.ok(labelsChecked);console.log('PASS label rails never overlap and leader endpoints lie on actual muscle mesh vertices across poses and camera angles');
 
+ const initialTarget=await page.locator('#target').screenshot();const poseBefore=await angles(),mainYaw=await page.locator('#yaw').inputValue();
+ const targetBox=await page.locator('#target').boundingBox();await page.mouse.move(targetBox.x+targetBox.width/2,targetBox.y+targetBox.height/2);await page.mouse.down();await page.mouse.move(targetBox.x+targetBox.width/2+80,targetBox.y+targetBox.height/2+35,{steps:8});await page.mouse.up();
+ assert.ok(!(await page.locator('#target').screenshot()).equals(initialTarget),'Dragging must change the rendered target');assert.deepEqual(await angles(),poseBefore);assert.equal(await page.locator('#yaw').inputValue(),mainYaw);
+ const cameraBefore=(await page.locator('#target').getAttribute('aria-label')).match(/-?\d+°/g);await page.locator('#zh').click();await page.locator('#en').click();assert.deepEqual((await page.locator('#target').getAttribute('aria-label')).match(/-?\d+°/g),cameraBefore);
+ await page.locator('#target').focus();await page.keyboard.press('ArrowLeft');assert.notDeepEqual((await page.locator('#target').getAttribute('aria-label')).match(/-?\d+°/g),cameraBefore);await page.locator('#targetReset').click();assert.ok((await page.locator('#target').screenshot()).equals(initialTarget),'Reset must restore the target view');console.log('PASS independent draggable target camera, arrow keys, language retention and reset');
  const download=page.waitForEvent('download');await page.locator('#csv').click();assert.match((await download).suggestedFilename(),/csv$/);console.log('PASS CSV export');
  await page.setViewportSize({width:390,height:844});assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);assert.ok(await page.locator('#zh').isVisible());await page.screenshot({path:'/tmp/movement-revised-mobile.png',fullPage:true});console.log('PASS narrow layout');
  const fallback=await browser.newPage();fallback.on('pageerror',e=>errors.push(e.message));await fallback.addInitScript(()=>{const get=HTMLCanvasElement.prototype.getContext;HTMLCanvasElement.prototype.getContext=function(type,...args){return type==='webgl'?null:get.call(this,type,...args)}});await fallback.goto('http://127.0.0.1:8000/dist/index.html');assert.ok(await fallback.locator('#fallback').isVisible());assert.deepEqual(errors,[]);console.log('PASS explicit fallback and no JavaScript errors');await browser.close();

@@ -53,3 +53,20 @@ test('scores use ±5° tolerance independently of camera and do not drift',()=>{
  const snapshot=structuredClone(task.to);advance(task.to,'left','extend',30);assert.deepEqual(task.to,snapshot);
 });
 test('stable bilingual dictionary is complete',()=>assert.deepEqual(Object.keys(dictionary.zh).sort(),Object.keys(dictionary.en).sort()));
+
+test('N and P muscle meshes and tendons stay posterior to the shin and insert on the heel',async()=>{
+ const {muscleGeometry}=await import('../renderer.js');
+ const add=(a,b)=>a.map((v,i)=>v+b[i]),sub=(a,b)=>a.map((v,i)=>v-b[i]),mul=(a,k)=>a.map(v=>v*k),unit=a=>mul(a,1/Math.hypot(...a));
+ const cross=(a,b)=>[a[1]*b[2]-a[2]*b[1],a[2]*b[0]-a[0]*b[2],a[0]*b[1]-a[1]*b[0]];
+ for(const stance of ['seated','running','dancing'])for(const knee of [0,20,45,90,110])for(const ankle of [-35,-15,0,15,30])for(const [j,k]of [['leftAnkle','knee'],['rightAnkle','rightKnee']]){
+ const pose={...neutral,stance,[k]:knee,[j]:ankle},b=rig(pose)[j],g=muscleGeometry(pose,j,'extend',b);
+ assert.deepEqual(g.insertion,b.heel);assert.ok(g.bulge>.06);assert.ok(Math.abs(distance(g.bellyEnd,g.insertion)-.14)<1e-10);
+ const axis=unit(sub(g.bellyEnd,g.origin)),u=unit(cross(axis,Math.abs(axis[1])<.9?[0,1,0]:[1,0,0])),v=cross(axis,u);
+ // Every actual surface vertex remains behind the posterior edge of the shin bone.
+ for(const [center,radius]of [[g.origin,.027],[g.mid,g.bulge],[g.bellyEnd,.026]])for(let i=0;i<12;i++){
+ const p=add(center,add(mul(u,radius*Math.cos(i*Math.PI/6)),mul(v,radius*Math.sin(i*Math.PI/6))));
+ assert.ok(dot(sub(p,b.pivot),b.normal)<-.045,`${stance} knee=${knee} ankle=${ankle} ${j}: muscle crosses shin`);
+ }
+ for(let t=0;t<=1;t+=.1){const p=add(mul(g.bellyEnd,1-t),mul(g.insertion,t));assert.ok(dot(sub(p,b.pivot),b.normal)<-.045-.017,'Tendon crosses shin');}
+ }
+});
