@@ -1,18 +1,51 @@
 # 人體的運動 · Body Movement Lab
 
-A bilingual HKDSE Biology movement simulation. Original, rotatable WebGL geometry with a rigged skeleton, hinge joints, opposing muscle pairs and a clearly identified 2D fallback. No accounts, package downloads, paid APIs or runtime third-party assets.
+Bilingual, offline educational simulation with original, rotatable 3D geometry, eight opposing muscle pairs labelled **A–P**, and a clearly identified 2D fallback. No accounts, paid APIs or runtime third-party requests.
 
-## 離線使用 / Run offline
+## 離線使用 / Offline use
 
-Download `body-movement-offline.zip`, extract it, and open `index.html` in a modern browser. Alternatively open `dist/index.html` directly. The built file contains all code, styles, diagrams and translations. A network connection and server are not required. Managed enterprise browsers may block file URLs; in that case use the local server below.
+Download `body-movement-offline.zip`, extract it, and open `index.html`. Alternatively open `dist/index.html` directly. All code, styles, translations and diagrams are bundled. No server or internet connection is required. A managed browser may block local files; use the loopback server below in that case.
 
-下載並解壓縮 `body-movement-offline.zip`，用瀏覽器開啟當中的 `index.html`，毋須安裝或連線。繁體中文為預設語言；右上角可切換英文。語言偏好會在瀏覽器允許時儲存。觀察紀錄保留於本次頁面，關閉前請下載 CSV。
+下載 ZIP 並解壓，開啟當中的 `index.html` 即可離線使用。繁體中文為預設語言，可隨時切換英文。觀察紀錄保留於本次頁面；關閉前請下載 CSV。
 
-## Development
+## Interaction
 
-Use the existing checkout; each cloud task is already isolated. Do not create another Git worktree unless requested.
+- One enlarged target render replaces the old initial / target / current thumbnails. The initial posture and assessed transitions remain specified in text.
+- **Hold a muscle or its letter on the diagram to contract it; release to stop.** Longer holds produce greater simulated movement. A tap advances by a small step. There is no destination-angle slider, contraction slider or joint dropdown. Holding a marker directly selects its pair.
+- In Guided Challenge, first choose the contracting and relaxing member of each assessed pair, then submit before operating. The written explanation is self-assessed against an explicitly revealed answer, never graded by keywords. Explore allows immediate manipulation.
+- Drag empty space to rotate, or use camera sliders / arrow keys. The collapsible keyboard index exposes equivalent A–P controls: hold Space or Enter; release to stop. Replay reproduces the **actual partial movement**, not an invented full movement.
+- Reset selected joint / whole pose, layers, side view, close-up, slower viewing and immutable observations remain available. CSV contains all eight joint settings, initial/target settings, selection, predictions, response, camera and elapsed model time. Language switching preserves current pose, task, responses, records and camera.
 
-Requires Node.js 18+ for builds/tests and Python 3 for the optional development server. No npm dependencies or installation step.
+## Muscle index
+
+| IDs | Pair | Effect |
+|---|---|---|
+| A / B | Left elbow biceps / triceps | Flexion / extension |
+| C / D | Right elbow biceps / triceps | Flexion / extension |
+| E / F | Left wrist flexor / extensor | Palm flexion / extension |
+| G / H | Right wrist flexor / extensor | Palm flexion / extension |
+| I / J | Left knee flexor / extensor | Flexion / extension |
+| K / L | Right knee flexor / extensor | Flexion / extension |
+| M / N | Left ankle dorsiflexor / plantarflexor | Raise toes / point foot down |
+| O / P | Right ankle dorsiflexor / plantarflexor | Raise toes / point foot down |
+
+Wrist, knee and ankle muscles are **functional schematics**, not additional named muscles required by the supplied chapter. Hand control concerns the wrist and palm, not individual fingers. Foot control concerns the ankle, not individual toes. The stable bilingual dictionary and exact supplied glossary are in `i18n.js`.
+
+## Corrected anatomy and model assumptions
+
+Knee flexion is now measured **relative to the thigh**, with **0° meaning thigh–shin alignment**. The old model incorrectly used a downward shin as 0° in a seated posture, effectively adding about 90° and causing excessive upward movement. The corrected seated shin bends down and back; throughout its range it remains below the knee. Standing-reference knees bend posteriorly. The heel stays below the hip at the permitted limit.
+
+The elbows likewise rotate relative to the upper arm. Wrists and ankles use their parent limb's local frame: when an elbow or knee moves, its hand/foot and attached muscle pair follow, while the wrist/ankle setting stays unchanged. Bones retain their lengths; hands and feet remain attached. Shoulders, hips and trunk are fixed within a task. Dance and running references use different preset fixed upper-arm frames, not hidden compensating movements.
+
+This is an unloaded teaching model. Within a pair only one muscle contracts; its opposing muscle relaxes and lengthens. Muscle bellies change length/thickness; schematic 0.14-unit tendons retain their length and transmit pull, while separate ligament segments identify bone-to-bone connections. It is not a medical anatomical atlas. Hold time is a viewing/input control, not a physiological law or measured force. Numerical angles and the ±5° scoring tolerance are invented teaching settings, not measured human data or examination recall requirements.
+
+Ten explicit movement tasks include the original six elbow/knee transitions, opposing wrist and ankle movements, and original **running-inspired** and **dance-inspired** posture transitions. These extensions are unloaded reference configurations, not a claim to reproduce gait, balance or actual activity in a moving person. Actual running/dancing involve gravity, balance, co-contraction and other muscles. A static target cannot uniquely identify real activation; scores concern a specified initial-to-target transition. After release, the caption identifies the **last movement**, rather than inferring current activity from a stationary posture.
+
+No textbook PDF or specific DSE past-paper question was supplied or retrieved. No past-paper artwork is reproduced or claimed; references are original models. Page references and alignment with the original textbook / EDB documents remain unverified. Lever classification and extra named muscles are outside the assessed scope.
+
+## Development and validation
+
+Use the existing checkout; cloud tasks are already isolated. Do not create a Git worktree unless requested. Node.js 18+ builds/tests the app; Python 3 is only needed for the optional server. No npm dependencies or installation step.
 
 ```sh
 npm test
@@ -20,38 +53,9 @@ npm run build
 npm start
 ```
 
-The development server binds only to loopback, port 8000. Serve the repository root for modular development; distribute `dist/index.html` for offline use. Rebuild after source changes. `npm run build` is deterministic and does not change source files.
+The server binds only to loopback, port 8000. Distribute `dist/index.html`; rebuild after changes. Optional browser checks require host-installed Playwright and Chromium: with the server running, use `node tests/browser.cjs`. Set `CHROMIUM_PATH` if needed. Test tools are not runtime application dependencies.
 
-Optional browser acceptance checks need Playwright and Chromium installed in the host environment. With the local server running, run `node tests/browser.cjs`. Set `CHROMIUM_PATH` when needed. These tools are test-only dependencies; the application itself needs none. The test also detects the preinstalled Playwright location in the managed cloud runtime.
+Verified in Node.js 24 and headless Chromium with WebGL:
 
-## Use
-
-Select an elbow or supported left knee, then contract a labelled muscle or click its geometry. A click on a different joint first selects that joint. Use progress, single step, play/pause or replay to inspect movement. The destination-angle control guides exploration; selecting the opposite muscle automatically chooses its directional limit if the old destination is incompatible. In a challenge the correct muscle moves towards the prescribed target; the opposite muscle moves away. Camera sliders provide keyboard alternatives to dragging. Reduced-motion users advance deliberately with progress or single-step controls instead of autoplay.
-
-Guided mode separates prediction, operation, observation and written explanation. Explanation is self-assessed against a revealed model answer, never graded by keyword matching. A ±5° geometrical tolerance applies independently to each assessed joint. Multiple-joint tasks accept either order. Records copy actual state, targets, camera, progress, predictions and explanation; later changes cannot alter them. CSV exports the recorded measurements and responses in the current language. No arbitrary-photo recognition is offered.
-
-## Model assumptions / 模型假設
-
-- Unloaded, supported, seated teaching model; shoulder, hip and trunk positions are fixed. Elbows independently range from 0–135°; the supported left knee ranges from 0–110°. These invented teaching settings are not measured human data or examination recall requirements.
-- Each pair allows only one selected muscle. Flexor contraction produces flexion; extensor contraction produces extension. Its opposing muscle is allowed to lengthen. The knee pair is a functional schematic, not a single-muscle anatomical claim.
-- Elbow flexors are biceps, anterior to the upper arm; extensors are triceps, posterior. Bones retain their lengths and rotate around fixed pivots in the hinge plane. Tendon segments connect the muscle belly to insertion points on moving forearm/shin geometry and retain a fixed schematic length; muscle-belly geometry adapts. Gold ligament segments distinguish bone-to-bone connection from pale tendon muscle-to-bone connection. Geometry is illustrative, not a surgical anatomical atlas.
-- Real movement may involve gravity, co-contraction and other muscles. A static posture alone never establishes activation; tasks specify initial state, target and movement direction. Matching a pose does not establish exclusive activation in a real person.
-- No textbook PDF or EDB source document was supplied or retrieved. Content follows the explicit chapter-specific specification and exact supplied glossary; page references and alignment against the original documents remain unverified. No claim of textbook artwork reproduction or formal curriculum certification is made. Lever classifications and additional named muscles are outside this tool's assessed scope.
-
-The complete stable-ID bilingual dictionary and exact supplied glossary are in `i18n.js`. All essential content is bundled in the offline file.
-
-## Acceptance evidence
-
-Executed in Node.js 24 and headless Chromium with WebGL (software rendering). See `tests/model.test.js` and `tests/browser.cjs`.
-
-| Required check | Evidence |
-|---|---|
-| 1. Each biceps flexes only its own elbow; triceps extends it | Model tests check both directions and unchanged other joints; browser checks all elbow transitions. |
-| 2. Opposing muscle states, tendon and pull caption agree | State/caption use the same selected joint and action as motion; renderer uses the same pose for insertion points and active muscle geometry. Reviewed in browser. Tendons have constant 0.14 model-unit length. |
-| 3. Knee directions and generic naming | Browser passes both supported-knee transitions; dictionary uses only generic knee flexor/extensor. |
-| 4. Defined initial → target movement | All six tasks validated reachable with explicit initial/target states; no photograph scoring. |
-| 5. Fixed joints, ranges and camera-independent scoring | Model tests verify limits, bone lengths and tolerance; browser verifies camera rotation preserves success. |
-| 6. Direct click / keyboard / replay equivalence | Browser checks a projected muscle hit, Enter activation and replay; all drive the same motion controller. |
-| 7. Language preserves selected task, pose and progress | Browser switches languages mid-movement and verifies unchanged progress; translation changes text without recreating simulation state. |
-
-Additional browser checks: immutable observations, CSV download, 390 px layout without horizontal overflow, explicit WebGL-unavailable fallback and no JavaScript exceptions.
+- Eight model tests: sixteen labels; independent bidirectional movement; ten reachable transitions in either joint order; hinge limits; fixed bone lengths and attached hands/feet; knee angle alignment and no seated upward over-rotation; elbow/wrist local angles; ankle directions; camera-independent tolerance; bilingual dictionary completeness.
+- Browser checks: enlarged single target and removed old controls; prediction gate; direct holding and release; longer hold produces greater movement; all sixteen diagram markers control the correct joint/direction; keyboard hold and partial replay; language/state retention; immutable records; running/dancing/hand/foot reference rendering; CSV; narrow layout; explicit WebGL fallback; no JavaScript errors.

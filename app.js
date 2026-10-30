@@ -1,22 +1,145 @@
-import {tasks,joints,limits,advance,matches,direction,interpolate} from './model.js';
+import {tasks,joints,limits,minimum,muscleID,muscleNameKey,advance,matches,direction,interpolate} from './model.js';
 import {dictionary,glossary} from './i18n.js';
 import {Renderer} from './renderer.js';
-const $=id=>document.getElementById(id);let lang='zh';try{lang=localStorage.getItem('movement-language')==='en'?'en':'zh'}catch{}
-const t=id=>dictionary[lang][id]??id;let task=tasks[0],pose={...task.from},selected='left',active=null,motion=null,lastMotion=null,playing=false,elapsed=0,progress=0,mode='explore',hint=0,feedback='working',predictionFeedback='',attempted=false,close=false,records=[],yaw=-25,pitch=10;
-const layers={skeleton:true,muscle:true,tendon:true,ligament:true,pull:true,labels:true,skin:false,overlay:false};const scene=new Renderer($('scene')),initial=new Renderer($('initial')),targetRenderer=new Renderer($('target')),currentRenderer=new Renderer($('current'));$('fallback').hidden=!!scene.gl;
-const predictions={left:'flex',right:'flex',knee:'flex'};
-const name=(j,k)=>t(j==='knee'?'k'+k:k==='flex'?'biceps':'triceps');
+const $=id=>document.getElementById(id);
+let lang='zh';try{lang=localStorage.getItem('movement-language')==='en'?'en':'zh'}catch{}
+const t=id=>dictionary[lang][id]??id;
+let task=tasks[0],pose={...task.from},selected='left',active=null,motion=null,lastMotion=null;
+let playing=false,elapsed=0,progress=0,mode='guided',hint=0,feedback='predictFirst',predictionFeedback='',attempted=false,close=false,records=[],yaw=-25,pitch=10;
+let holding=null,drag=null;
+const layers={skeleton:true,muscle:true,tendon:true,ligament:true,pull:true,labels:true,skin:false,overlay:false};
+const scene=new Renderer($('scene')),targetRenderer=new Renderer($('target'));
+$('fallback').hidden=!!scene.gl;
+const predictions=Object.fromEntries(joints.map(j=>[j,'']));
+const name=(j,k)=>`${muscleID(j,k)} · ${t(muscleNameKey(j,k))}`;
+const pairText=(j,k)=>`${name(j,k)} ${t('contracting')} / ${name(j,k==='flex'?'extend':'flex')} ${t('relaxing')}`;
 function option(value,label){const o=document.createElement('option');o.value=value;o.textContent=label;return o}
-function render(){const opts={yaw,pitch,layers,active,t,joint:selected,close,target:task.to};scene.render(pose,opts);const mini={yaw:-55,pitch:10,layers:{skeleton:true,muscle:true,tendon:true,labels:true},t,mini:true};initial.render(task.from,mini);targetRenderer.render(task.to,mini);currentRenderer.render(pose,mini);}
-function update(){ $('elapsed').textContent=`${t('time')} ${elapsed.toFixed(1)} s`;$('progress').value=progress*100;$('play').textContent=t(playing?'pause':'play');$('angleOut').textContent=`${$('angle').value}°`;const states=$('states');states.replaceChildren();for(const j of joints){const s=document.createElement('span');s.textContent=`${t(j)} ${pose[j].toFixed(0)}°${active?.joint===j?' · '+name(j,active.kind)+' '+t('active')+' / '+name(j,active.kind==='flex'?'extend':'flex')+' '+t('relaxed'):''}`;states.append(s)}$('caption').textContent=active?`${t(active.joint)} · ${name(active.joint,active.kind)} ${t('causal')}`:t('idle');$('checklist').replaceChildren(...task.joint.map(j=>{const li=document.createElement('li');li.textContent=`${Math.abs(pose[j]-task.to[j])<=5?'✓':'○'} ${t(j)}: ${task.from[j]}° → ${task.to[j]}° · ${t(direction(task,j))}`;return li}));$('feedback').textContent=t(feedback==='working'&&mode==='guided'&&attempted&&matches(pose,task)?'success':feedback);$('answer').textContent=(predictionFeedback?t(predictionFeedback)+' ':'')+task.joint.map(j=>`${t(j)}: ${name(j,direction(task,j))}`).join(' · ')+'. '+t('answer');$('hintText').textContent=hint?t('hint'+Math.min(hint,3)):'';render();}
-function translate(){document.documentElement.lang=lang==='zh'?'zh-Hant':'en-GB';document.title=t('title')+' · Movement Lab';document.querySelectorAll('[data-t]').forEach(e=>e.textContent=t(e.dataset.t));$('zh').classList.toggle('active',lang==='zh');$('en').classList.toggle('active',lang==='en');for(const id of ['zh','en'])$(id).setAttribute('aria-pressed',String(lang===id));$('joint').replaceChildren(...joints.map(j=>option(j,t(j))));$('joint').value=selected;$('task').replaceChildren(...tasks.map(q=>option(q.id,t(q.id))));$('task').value=task.id;$('taskText').textContent=task.joint.map(j=>`${t(j)}: ${t('start')} ${task.from[j]}° → ${t('end')} ${task.to[j]}° (${t(direction(task,j))})`).join(' · ');const oldSpeed=$('speed').value||'1';$('speed').replaceChildren(option('1',t('normal')),option('.5',t('slower')),option('.25',t('slowest')));$('speed').value=oldSpeed;$('speed').setAttribute('aria-label',t('view'));$('scene').setAttribute('aria-label',t('orientation')+'; '+t('joint'));$('layers').replaceChildren();for(const id of Object.keys(layers)){const label=document.createElement('label'),input=document.createElement('input');input.type='checkbox';input.checked=layers[id];input.onchange=()=>{layers[id]=input.checked;render()};label.append(input,document.createTextNode(t(id)));$('layers').append(label)}$('muscles').replaceChildren();for(const kind of ['flex','extend']){const b=document.createElement('button');b.className='muscle '+kind;b.textContent=`${name(selected,kind)} · ${t('contract')}`;b.onclick=()=>contract(selected,kind);b.dataset.kind=kind;$('muscles').append(b)}$('predictions').replaceChildren();for(const j of task.joint){const label=document.createElement('label');label.textContent=t(j);const select=document.createElement('select');select.setAttribute('aria-label',t('prediction')+' '+t(j));select.replaceChildren(...['flex','extend'].map(k=>option(k,name(j,k))));select.value=predictions[j];select.onchange=()=>{predictions[j]=select.value};label.append(select);$('predictions').append(label)}$('guide').hidden=mode!=='guided';$('explore').classList.toggle('active',mode==='explore');$('guided').classList.toggle('active',mode==='guided');$('glossary').replaceChildren(...glossary.map(a=>{const s=document.createElement('span');s.textContent=lang==='zh'?a[0]+' · '+a[1]:a[1]+' · '+a[0];return s}));drawRecords();update();}
-function selectJoint(j){selected=j;$('angle').max=limits[j];$('angle').value=mode==='guided'&&task.joint.includes(j)?task.to[j]:Math.min(limits[j],pose[j]+50);translate()}
-function contract(j,kind){if(j!==selected){selectJoint(j);return}const max=limits[j];let end=Number($('angle').value);if(mode==='guided'&&task.joint.includes(j)){end=direction(task,j)===kind?task.to[j]:(kind==='flex'?max:0)}if((kind==='flex'&&pose[j]>=max)||(kind==='extend'&&pose[j]<=0)){feedback='limit';update();return}if((kind==='flex'&&end<=pose[j])||(kind==='extend'&&end>=pose[j])){end=kind==='flex'?max:0;$('angle').value=end}active={joint:j,kind};motion={from:{...pose},to:{...pose,[j]:end},joint:j,kind};lastMotion=structuredClone(motion);progress=0;playing=!matchMedia('(prefers-reduced-motion: reduce)').matches;feedback='working';if(!playing){progress=.05;pose=interpolate(motion.from,motion.to,progress)}update()}
-function setProgress(p){if(!motion)return;progress=Math.max(0,Math.min(1,p));pose=interpolate(motion.from,motion.to,progress);if(progress>=1)playing=false;update()}
-function reset(all){playing=false;motion=null;active=null;progress=0;feedback='working';if(all){pose={...task.from};elapsed=0}else pose[selected]=task.from[selected];update()}
-function drawRecords(){const host=$('records');host.replaceChildren();if(!records.length){const p=document.createElement('p');p.className='empty';p.textContent=t('empty');host.append(p);return}const table=document.createElement('table'),head=document.createElement('tr');for(const key of ['trial','reference','time','angles','selection','progressCol','prediction','response','match']){const th=document.createElement('th');th.textContent=t(key);head.append(th)}table.append(head);records.forEach((r,i)=>{const tr=document.createElement('tr');const vals=[i+1,t(r.task),r.elapsed.toFixed(1)+' s',joints.map(j=>`${t(j)} ${r.pose[j].toFixed(1)}°`).join(' / '),r.active?t(r.active.joint)+' '+name(r.active.joint,r.active.kind):'—',(r.progress*100).toFixed(0),r.assessed.map(j=>t(j)+': '+name(j,r.predictions[j])).join(' / '),r.response,t(r.match?'yes':'no')];for(const v of vals){const td=document.createElement('td');td.textContent=v;tr.append(td)}table.append(tr)});host.append(table)}
-$('zh').onclick=()=>setLang('zh');$('en').onclick=()=>setLang('en');function setLang(l){lang=l;try{localStorage.setItem('movement-language',l)}catch{}translate()}
-$('joint').onchange=()=>selectJoint($('joint').value);$('angle').oninput=()=>{$('angleOut').textContent=$('angle').value+'°'};$('task').onchange=()=>{task=tasks.find(q=>q.id===$('task').value);hint=0;attempted=false;predictionFeedback='';$('answer').hidden=true;reset(true);selectJoint(task.joint[0])};for(const m of ['explore','guided'])$(m).onclick=()=>{mode=m;translate()};$('play').onclick=()=>{if(!motion)return;if(progress>=1){pose={...motion.from};progress=0}playing=!playing;update()};$('step').onclick=()=>{playing=false;setProgress(progress+.05)};$('progress').oninput=()=>{playing=false;setProgress(Number($('progress').value)/100)};$('replay').onclick=()=>{if(!lastMotion)return;motion=structuredClone(lastMotion);active={joint:motion.joint,kind:motion.kind};pose={...motion.from};progress=0;playing=!matchMedia('(prefers-reduced-motion: reduce)').matches;update()};$('reset').onclick=()=>reset(true);$('resetJoint').onclick=()=>reset(false);$('side').onclick=()=>{yaw=-90;pitch=0;$('yaw').value=yaw;$('pitch').value=pitch;render()};$('yaw').oninput=()=>{yaw=Number($('yaw').value);render()};$('pitch').oninput=()=>{pitch=Number($('pitch').value);render()};$('close').onclick=()=>{close=!close;render()};$('hint').onclick=()=>{hint=Math.min(3,hint+1);update()};$('attempt').onclick=()=>{attempted=true;predictionFeedback=task.joint.every(j=>predictions[j]===direction(task,j))?'predictionRight':'predictionWrong';feedback='predictionSaved';update()};$('reveal').onclick=()=>{$('answer').hidden=!$('answer').hidden;update()};$('record').onclick=()=>{records.push(structuredClone({task:task.id,assessed:task.joint,from:task.from,target:task.to,pose,elapsed,active,progress,predictions,response:$('explanation').value,match:matches(pose,task),yaw,pitch}));drawRecords()};
-$('csv').onclick=()=>{const keys=['trial','reference','time','left','right','knee','selection','progressCol','prediction','response','match'];const rows=[keys.map(k=>t(k)),...records.map((r,i)=>[i+1,t(r.task),r.elapsed.toFixed(2)+' s',r.pose.left+'°',r.pose.right+'°',r.pose.knee+'°',r.active?t(r.active.joint)+' '+name(r.active.joint,r.active.kind):'',(r.progress*100).toFixed(1),r.assessed.map(j=>t(j)+': '+name(j,r.predictions[j])).join(' / '),r.response,t(r.match?'yes':'no')])];const escape=v=>{let s=String(v);if(/^[=+@-]/.test(s))s="'"+s;return '"'+s.replaceAll('"','""')+'"'};const blob=new Blob(['\ufeff'+rows.map(r=>r.map(escape).join(',')).join('\r\n')],{type:'text/csv;charset=utf-8'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=lang==='zh'?'人體運動觀察.csv':'movement-observations.csv';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000)};
-let drag=null;$('scene').onpointerdown=e=>{drag={x:e.clientX,y:e.clientY,oldX:e.clientX,oldY:e.clientY,moved:false};$('scene').setPointerCapture(e.pointerId)};$('scene').onpointermove=e=>{if(!drag)return;const dx=e.clientX-drag.oldX,dy=e.clientY-drag.oldY;if(Math.hypot(e.clientX-drag.x,e.clientY-drag.y)>5)drag.moved=true;if(drag.moved){yaw=Math.max(-180,Math.min(180,yaw+dx*.5));pitch=Math.max(-50,Math.min(50,pitch+dy*.4));$('yaw').value=yaw;$('pitch').value=pitch;render()}drag.oldX=e.clientX;drag.oldY=e.clientY};$('scene').onpointerup=e=>{if(drag&&!drag.moved){const r=$('scene').getBoundingClientRect(),p=scene.pick(e.clientX-r.left,e.clientY-r.top);if(p)contract(p.joint,p.kind)}drag=null};$('scene').onpointercancel=()=>drag=null;$('scene').onkeydown=e=>{if(e.key==='ArrowLeft'||e.key==='ArrowRight'){e.preventDefault();yaw+=e.key==='ArrowLeft'?-5:5;render()}};
-let last=performance.now();function frame(now){const dt=Math.min(.1,(now-last)/1000);last=now;if(playing&&motion){elapsed+=dt*Number($('speed').value);setProgress(progress+dt*Number($('speed').value)/2.5)}requestAnimationFrame(frame)}new ResizeObserver(()=>render()).observe($('scene'));translate();requestAnimationFrame(frame);
+let referenceKey='';
+function render(){
+ scene.render(pose,{yaw,pitch,layers,active,t,joint:selected,close,target:task.to});
+ const key=task.id+lang+$('target').clientWidth;
+ if(referenceKey!==key){referenceKey=key;targetRenderer.render(task.to,{yaw:-25,pitch:8,layers:{skeleton:true,muscle:true,tendon:true,labels:true},t,mini:true})}
+}
+function update(){
+ $('elapsed').textContent=`${t('time')} ${elapsed.toFixed(1)} s`;
+ $('play').textContent=t(playing?'pause':'play');
+ $('holdStatus').textContent=holding?`${name(holding.joint,holding.kind)} · ${t('contracting')} · ${(100*(holding.kind==='flex'?(pose[holding.joint]-minimum[holding.joint])/(limits[holding.joint]-minimum[holding.joint]):(limits[holding.joint]-pose[holding.joint])/(limits[holding.joint]-minimum[holding.joint]))).toFixed(0)}%`:t('holdStatus');
+ $('states').replaceChildren(...joints.map(j=>{const s=document.createElement('span');s.textContent=`${t(j)} ${pose[j].toFixed(0)}°${active?.joint===j?' · '+t(holding||playing?'moving':'lastAction')+': '+pairText(j,active.kind):''}`;return s}));
+ $('caption').textContent=active?`${t(holding||playing?'moving':'lastAction')} · ${t(active.joint)} · ${name(active.joint,active.kind)} ${t('causal')}`:t('idle');
+ $('checklist').replaceChildren(...task.joint.map(j=>{const li=document.createElement('li');li.textContent=`${Math.abs(pose[j]-task.to[j])<=5?'✓':'○'} ${t(j)}: ${task.from[j]}° → ${task.to[j]}°`;return li}));
+ $('feedback').textContent=t(mode==='guided'&&attempted&&matches(pose,task)?'success':feedback);
+ $('answer').textContent=(predictionFeedback?t(predictionFeedback)+' ':'')+task.joint.map(j=>`${t(j)}: ${pairText(j,direction(task,j))}`).join(' · ')+'. '+t('answer');
+ $('hintText').textContent=hint?t('hint'+Math.min(hint,3)):'';
+ document.querySelectorAll('[data-muscle]').forEach(b=>b.classList.toggle('active',active?.joint===b.dataset.joint&&active?.kind===b.dataset.kind));
+ render();
+}
+function translate(){
+ document.documentElement.lang=lang==='zh'?'zh-Hant':'en-GB';document.title=t('title')+' · Movement Lab';
+ document.querySelectorAll('[data-t]').forEach(e=>e.textContent=t(e.dataset.t));
+ for(const id of ['zh','en']){$(id).classList.toggle('active',lang===id);$(id).setAttribute('aria-pressed',String(lang===id))}
+ $('task').replaceChildren(...tasks.map(q=>option(q.id,t(q.id))));$('task').value=task.id;
+ $('taskText').textContent=(task.supplementary?t('rehearsal')+' ':'')+task.joint.map(j=>`${t(j)}: ${t('start')} ${task.from[j]}° → ${t('end')} ${task.to[j]}°`).join(' · ');
+ const oldSpeed=$('speed').value||'1';$('speed').replaceChildren(option('1',t('normal')),option('.5',t('slower')),option('.25',t('slowest')));$('speed').value=oldSpeed;$('speed').setAttribute('aria-label',t('view'));
+ $('scene').setAttribute('aria-label',t('holdHelp'));
+ $('layers').replaceChildren();
+ for(const id of Object.keys(layers)){const label=document.createElement('label'),input=document.createElement('input');input.type='checkbox';input.checked=layers[id];input.onchange=()=>{layers[id]=input.checked;render()};label.append(input,document.createTextNode(t(id)));$('layers').append(label)}
+ $('muscles').replaceChildren();
+ for(const j of joints)for(const kind of ['flex','extend']){
+  const b=document.createElement('button');b.textContent=`${name(j,kind)} · ${t(j)}`;b.title=t('holdHelp');b.dataset.muscle=muscleID(j,kind);b.dataset.joint=j;b.dataset.kind=kind;
+  b.onpointerdown=e=>{if(e.button!==0)return;e.preventDefault();b.setPointerCapture(e.pointerId);beginHold(j,kind)};
+  b.onpointerup=e=>{e.preventDefault();endHold(true)};b.onpointercancel=()=>endHold(false);b.onlostpointercapture=()=>endHold(false);
+  b.onkeydown=e=>{if(['Enter',' '].includes(e.key)){e.preventDefault();if(!e.repeat)beginHold(j,kind)}};
+  b.onkeyup=e=>{if(['Enter',' '].includes(e.key)){e.preventDefault();endHold(true)}};
+  b.onblur=()=>{if(holding?.joint===j&&holding.kind===kind)endHold(false)};
+  b.onclick=e=>{if(e.detail===0&&!holding){beginHold(j,kind);endHold(true)}};
+  $('muscles').append(b);
+ }
+ $('predictions').replaceChildren();
+ for(const j of task.joint){const row=document.createElement('div');row.className='predictionRow';const label=document.createElement('label');label.textContent=t(j);const select=document.createElement('select');select.id='prediction-'+j;label.htmlFor=select.id;select.setAttribute('aria-label',t('prediction')+' '+t(j));select.replaceChildren(option('',t('choose')),...['flex','extend'].map(k=>option(k,pairText(j,k))));select.value=predictions[j];select.disabled=attempted;select.onchange=()=>{predictions[j]=select.value};row.append(label,select);$('predictions').append(row)}
+ $('guide').hidden=mode!=='guided';$('attempt').disabled=attempted;
+ $('explore').classList.toggle('active',mode==='explore');$('guided').classList.toggle('active',mode==='guided');
+ $('glossary').replaceChildren(...glossary.map(a=>{const s=document.createElement('span');s.textContent=lang==='zh'?a[0]+' · '+a[1]:a[1]+' · '+a[0];return s}));
+ drawRecords();update();
+}
+function beginHold(j,kind){
+ if(mode==='guided'&&!attempted){feedback='predictFirst';update();return}
+ if(holding)endHold(false);
+ selected=j;playing=false;active={joint:j,kind};progress=0;feedback='working';
+ holding={joint:j,kind,from:{...pose},began:performance.now(),moved:false};
+ motion=null;update();
+}
+function moveHeld(degrees){
+ if(!holding)return;
+ const next=advance(pose,holding.joint,holding.kind,degrees);
+ if(next[holding.joint]===pose[holding.joint]){feedback='limit';return}
+ pose=next;holding.moved=true;
+}
+function endHold(tap){
+ if(!holding)return;
+ if(tap&&!holding.moved)moveHeld(4);
+ const h=holding;holding=null;
+ if(h.moved){lastMotion={from:h.from,to:{...pose},joint:h.joint,kind:h.kind};motion=structuredClone(lastMotion);progress=1;feedback='stopped'}
+ update();
+}
+function step(){
+ if(holding)endHold(false);
+ if(!active){feedback='idle';update();return}
+ beginHold(active.joint,active.kind);endHold(true);
+}
+function reset(all){
+ endHold(false);playing=false;motion=null;lastMotion=null;active=null;progress=0;feedback=mode==='guided'&&!attempted?'predictFirst':'working';
+ if(all){pose={...task.from};elapsed=0}else pose={...pose,[selected]:task.from[selected]};update();
+}
+function drawRecords(){
+ const host=$('records');host.replaceChildren();
+ if(!records.length){const p=document.createElement('p');p.className='empty';p.textContent=t('empty');host.append(p);return}
+ const table=document.createElement('table'),head=document.createElement('tr');
+ for(const key of ['trial','reference','time','angles','selection','prediction','response','match']){const th=document.createElement('th');th.textContent=t(key);head.append(th)}table.append(head);
+ records.forEach((r,i)=>{const tr=document.createElement('tr');const vals=[i+1,t(r.task),r.elapsed.toFixed(1)+' s',joints.map(j=>`${t(j)} ${r.pose[j].toFixed(1)}°`).join(' / '),r.active?t(r.active.joint)+' '+name(r.active.joint,r.active.kind):'—',r.assessed.map(j=>t(j)+': '+(r.predictions[j]?pairText(j,r.predictions[j]):'—')).join(' / '),r.response,t(r.match?'yes':'no')];for(const v of vals){const td=document.createElement('td');td.textContent=v;tr.append(td)}table.append(tr)});host.append(table);
+}
+for(const l of ['zh','en'])$(l).onclick=()=>{lang=l;try{localStorage.setItem('movement-language',l)}catch{}translate()};
+$('task').onchange=()=>{
+ endHold(false);task=tasks.find(q=>q.id===$('task').value);hint=0;attempted=false;predictionFeedback='';for(const j of joints)predictions[j]='';$('answer').hidden=true;$('explanation').value='';selected=task.joint[0];reset(true);referenceKey='';translate();
+};
+for(const m of ['explore','guided'])$(m).onclick=()=>{endHold(false);playing=false;mode=m;if(m==='guided'){attempted=false;reset(true)}feedback=m==='guided'?'predictFirst':'working';translate()};
+$('play').onclick=()=>{if(!motion)return;playing=!playing;update()};
+$('step').onclick=step;
+$('replay').onclick=()=>{
+ if(!lastMotion)return;endHold(false);motion=structuredClone(lastMotion);active={joint:motion.joint,kind:motion.kind};selected=motion.joint;pose={...motion.from};progress=0;playing=true;update();
+};
+$('reset').onclick=()=>reset(true);$('resetJoint').onclick=()=>reset(false);
+$('side').onclick=()=>{yaw=-90;pitch=0;$('yaw').value=yaw;$('pitch').value=pitch;render()};
+$('yaw').oninput=()=>{yaw=Number($('yaw').value);render()};$('pitch').oninput=()=>{pitch=Number($('pitch').value);render()};
+$('close').onclick=()=>{close=!close;render()};
+$('hint').onclick=()=>{hint=Math.min(3,hint+1);update()};
+$('attempt').onclick=()=>{
+ if(task.joint.some(j=>!predictions[j])){feedback='predictionMissing';update();return}
+ attempted=true;predictionFeedback=task.joint.every(j=>predictions[j]===direction(task,j))?'predictionRight':'predictionWrong';feedback='predictionSaved';translate();
+};
+$('reveal').onclick=()=>{$('answer').hidden=!$('answer').hidden;update()};
+$('record').onclick=()=>{records.push(structuredClone({task:task.id,assessed:task.joint,from:task.from,target:task.to,pose,elapsed,active,progress,predictions,response:$('explanation').value,match:matches(pose,task),yaw,pitch}));drawRecords()};
+$('csv').onclick=()=>{
+ const keys=['trial','reference','time',...joints,'selection','prediction','response','match','start','end','rotate','tilt'];
+ const rows=[keys.map(k=>t(k)),...records.map((r,i)=>[i+1,t(r.task),r.elapsed.toFixed(2)+' s',...joints.map(j=>r.pose[j]+'°'),r.active?t(r.active.joint)+' '+name(r.active.joint,r.active.kind):'',r.assessed.map(j=>t(j)+': '+(r.predictions[j]?pairText(j,r.predictions[j]):'—')).join(' / '),r.response,t(r.match?'yes':'no'),joints.map(j=>t(j)+': '+r.from[j]+'°').join(' / '),joints.map(j=>t(j)+': '+r.target[j]+'°').join(' / '),r.yaw+'°',r.pitch+'°'])];
+ const escape=v=>{let s=String(v);if(/^[=+@-]/.test(s))s="'"+s;return '"'+s.replaceAll('"','""')+'"'};
+ const blob=new Blob(['\ufeff'+rows.map(r=>r.map(escape).join(',')).join('\r\n')],{type:'text/csv;charset=utf-8'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=lang==='zh'?'人體運動觀察.csv':'movement-observations.csv';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000);
+};
+$('scene').onpointerdown=e=>{
+ if(e.button!==0)return;e.preventDefault();$('scene').setPointerCapture(e.pointerId);
+ const r=$('scene').getBoundingClientRect(),hit=scene.pick(e.clientX-r.left,e.clientY-r.top);
+ if(hit){drag=null;beginHold(hit.joint,hit.kind)}else drag={x:e.clientX,y:e.clientY};
+};
+$('scene').onpointermove=e=>{
+ if(!drag)return;yaw=Math.max(-180,Math.min(180,yaw+(e.clientX-drag.x)*.5));pitch=Math.max(-50,Math.min(50,pitch+(e.clientY-drag.y)*.4));$('yaw').value=yaw;$('pitch').value=pitch;drag={x:e.clientX,y:e.clientY};render();
+};
+$('scene').onpointerup=()=>{endHold(true);drag=null};$('scene').onpointercancel=()=>{endHold(false);drag=null};$('scene').onlostpointercapture=()=>endHold(false);
+$('scene').onkeydown=e=>{if(e.key==='ArrowLeft'||e.key==='ArrowRight'){e.preventDefault();yaw=Math.max(-180,Math.min(180,yaw+(e.key==='ArrowLeft'?-5:5)));$('yaw').value=yaw;render()}};
+window.addEventListener('blur',()=>{endHold(false);playing=false});document.addEventListener('visibilitychange',()=>{if(document.hidden){endHold(false);playing=false}});
+let last=performance.now();
+function frame(now){
+ const dt=Math.min(.1,(now-last)/1000);last=now;const speed=Number($('speed').value||1);
+ if(holding&&now-holding.began>250){const adjusted=dt*speed;elapsed+=adjusted;moveHeld(adjusted*35);update()}
+ else if(playing&&motion){const distance=Math.abs(motion.to[motion.joint]-motion.from[motion.joint]);const duration=matchMedia('(prefers-reduced-motion: reduce)').matches?.15:Math.max(.2,distance/35);elapsed+=dt*speed;progress=Math.min(1,progress+dt*speed/duration);pose=interpolate(motion.from,motion.to,progress);if(progress===1)playing=false;update()}
+ requestAnimationFrame(frame);
+}
+new ResizeObserver(()=>{referenceKey='';render()}).observe($('scene'));translate();requestAnimationFrame(frame);
