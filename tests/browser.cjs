@@ -31,7 +31,7 @@ assert.ok(await page.locator('#fallback').isHidden());console.log('PASS one enla
  const {joints}=await import('../model.js');
  for(let i=0;i<joints.length;i++)for(const kind of ['flex','extend']){
   await page.locator('#reset').click();const start=await angles();await press(joints[i],kind,40);const end=await angles();
-  assert.equal(end[i]-start[i],kind==='flex'?4:-4,`${joints[i]} ${kind}`);for(let k=0;k<8;k++)if(k!==i)assert.equal(end[k],start[k]);
+  assert.equal(end[i]-start[i],kind==='flex'?1:-1,`${joints[i]} ${kind}`);for(let k=0;k<8;k++)if(k!==i)assert.equal(end[k],start[k]);
  }
  console.log('PASS all sixteen diagram labels actuate the correct joint in the correct direction');
  // Keyboard and replay use the same motion state as direct interaction.

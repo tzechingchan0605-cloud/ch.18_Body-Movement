@@ -76,7 +76,7 @@ function moveHeld(degrees){
 }
 function endHold(tap){
  if(!holding)return;
- if(tap&&!holding.moved)moveHeld(4);
+ if(tap&&!holding.moved)moveHeld(1);
  const h=holding;holding=null;
  if(h.moved){lastMotion={from:h.from,to:{...pose},joint:h.joint,kind:h.kind};motion=structuredClone(lastMotion);progress=1;feedback='stopped'}
  update();

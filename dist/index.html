@@ -25,12 +25,12 @@ Object.assign(zh,{knee:'左膝',lastAction:'剛才的動作',leftProfile:'左側
  leftWrist:'左腕',rightWrist:'右腕',rightKnee:'右膝',leftAnkle:'左踝',rightAnkle:'右踝',
  wflex:'腕屈肌（功能示意）',wextend:'腕伸肌（功能示意）',aflex:'踝背屈肌（功能示意）',aextend:'踝蹠屈肌（功能示意）',
  hands:'雙手手掌向相反方向轉動',feet:'雙腳腳掌向相反方向轉動',run:'跑步參考：擺臂與屈膝',dance:'舞蹈參考：手腕與下肢姿勢',
- holdHelp:'直接長按圖中的肌肉或 A–P 標記，按得越久，收縮程度越大；放開即停。短按可小步調整。空白位置拖動可旋轉。',keyboardMuscles:'鍵盤操作與 A–P 肌肉索引',
+ holdHelp:'直接長按圖中的肌肉或 A–P 標記，按得越久，收縮程度越大；放開即停。每次單擊移動 1°。空白位置拖動可旋轉。',keyboardMuscles:'鍵盤操作與 A–P 肌肉索引',
  holdStatus:'按住收縮 · 放開停止',predictFirst:'先為每個指定關節預測哪一肌肉收縮、哪一肌肉鬆弛，再提交預測開始操作。',choose:'請選擇一組預測',contracting:'收縮',relaxing:'鬆弛',predictionMissing:'請完成所有指定關節的拮抗肌預測。',
  stopped:'已停止；可繼續長按調整收縮程度。',rehearsal:'延伸動作參考：這是無負重的姿勢轉換示意，並非分析跑步／舞蹈中的實際肌肉活動。',
  fixed:'肩、髖及軀幹在每個任務中固定。手腕與腳踝隨其上游肢體移動，但關節設定不會自動改變。',
  supported:'簡化運動模型 · 八組拮抗肌 A–P',operate:'直接操作模型',rendered:'放大的原創目標模型。初始姿勢以文字列出；評核指定的姿勢轉換，並非從靜態圖推斷真實肌肉活動。',
- predict:'① 操作前預測：收縮肌與鬆弛肌',step:'小步收縮',resetJoint:'重設所選關節',idle:'長按圖中任一肌肉或 A–P 標記以收縮；放開即停。',
+ predict:'① 操作前預測：收縮肌與鬆弛肌',step:'收縮 1°',resetJoint:'重設所選關節',idle:'長按圖中任一肌肉或 A–P 標記以收縮；放開即停。',
  hint1:'先比較指定關節的初始與目標數值，判斷所需運動方向。',hint2:'肘屈曲選二頭肌，伸直選三頭肌；腕與膝使用相應屈肌／伸肌。踝背屈使腳尖抬起，蹠屈使腳尖下壓。',hint3:'每組只允許一肌肉收縮；其拮抗肌鬆弛。長按程度控制姿勢；多關節任務可按任何順序完成。',
  assumptions:'這是簡化、無負重的運動模型：每組只允許一肌肉收縮，拮抗肌鬆弛並伸長。肌肉只能拉，不能推。A–P 對應雙側肘、腕、膝及踝的八組拮抗肌。腕、膝與踝的肌肉是功能示意，並非額外的必考肌肉名稱。按壓時間只控制模擬收縮程度，並非實測肌力或生理收縮定律。角度及 ±5° 容差只是模型設定。',
  anatomy:'腱連接肌肉與骨骼；韌帶連接骨與骨。雙肘的二頭肌與三頭肌，以及前臂、下肢的功能示意肌肉組，分別控制肘、腕、膝及踝。腳掌背屈／蹠屈不是腳趾個別活動。真實跑步與舞蹈涉及重力、平衡及多肌肉活動，本工具只示意指定的關節轉換。',
@@ -41,12 +41,12 @@ Object.assign(en,{knee:'Left knee',lastAction:'Last movement',leftProfile:'Left 
  leftWrist:'Left wrist',rightWrist:'Right wrist',rightKnee:'Right knee',leftAnkle:'Left ankle',rightAnkle:'Right ankle',
  wflex:'Wrist flexor (schematic)',wextend:'Wrist extensor (schematic)',aflex:'Ankle dorsiflexor (schematic)',aextend:'Ankle plantarflexor (schematic)',
  hands:'Move palms in opposite directions',feet:'Move feet in opposite directions',run:'Running reference: arms and knees',dance:'Dance reference: wrists and legs',
- holdHelp:'Hold a muscle or its A–P marker to increase contraction; release to stop. Tap for a small adjustment. Drag empty space to rotate.',keyboardMuscles:'Keyboard controls & A–P muscle index',
+ holdHelp:'Hold a muscle or its A–P marker to increase contraction; release to stop. Each single click moves 1°. Drag empty space to rotate.',keyboardMuscles:'Keyboard controls & A–P muscle index',
  holdStatus:'Hold to contract · Release to stop',predictFirst:'Predict the contracting and relaxing muscle in each assessed pair, then submit to operate.',choose:'Choose a prediction',contracting:'Contracting',relaxing:'Relaxing',predictionMissing:'Complete the opposing-pair predictions for every assessed joint.',
  stopped:'Stopped. Hold again to adjust the degree of contraction.',rehearsal:'Extension reference: an unloaded posture transition, not an analysis of actual muscle activity during running or dancing.',
  fixed:'Shoulders, hips and trunk are fixed within each task. Wrists and ankles follow their parent limbs, but their joint settings do not change automatically.',
  supported:'Simplified movement model · Eight opposing pairs A–P',operate:'Operate on the model',rendered:'Enlarged original target model. The starting posture is specified in text. Assessment concerns a defined transition, not muscle inference from a static picture.',
- predict:'① Before operating: predict contraction and relaxation',step:'Small contraction step',resetJoint:'Reset selected joint',idle:'Hold any muscle or A–P marker to contract it; release to stop.',
+ predict:'① Before operating: predict contraction and relaxation',step:'Contract 1°',resetJoint:'Reset selected joint',idle:'Hold any muscle or A–P marker to contract it; release to stop.',
  hint1:'Compare the prescribed starting and target values to identify the movement direction.',hint2:'Choose biceps for elbow flexion and triceps for extension. Use the corresponding flexor/extensor at the wrist and knee. Ankle dorsiflexion raises the toes; plantarflexion points the foot down.',hint3:'Only one member of a pair contracts while its opposing muscle relaxes. Hold to adjust the posture. Complete multiple joints in either order.',
  assumptions:'A simplified, unloaded movement model: one member of each pair contracts while its opposing muscle relaxes and lengthens. Muscles pull; they never push. A–P identify eight pairs at the two elbows, wrists, knees and ankles. Wrist, knee and ankle muscles are functional schematics, not additional required named muscles. Hold duration controls simulated contraction, not measured muscle force or a physiological law. Angles and the ±5° tolerance are model settings.',
  anatomy:'Tendons connect muscle to bone; ligaments connect bone to bone. Biceps and triceps act at each elbow; functional forearm and lower-limb pairs control wrists, knees and ankles. Foot dorsiflexion/plantarflexion does not represent individual toe movements. Real running and dancing involve gravity, balance and multiple muscles; this tool illustrates prescribed joint transitions only.',
@@ -218,7 +218,7 @@ function moveHeld(degrees){
 }
 function endHold(tap){
  if(!holding)return;
- if(tap&&!holding.moved)moveHeld(4);
+ if(tap&&!holding.moved)moveHeld(1);
  const h=holding;holding=null;
  if(h.moved){lastMotion={from:h.from,to:{...pose},joint:h.joint,kind:h.kind};motion=structuredClone(lastMotion);progress=1;feedback='stopped'}
  update();
