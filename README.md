@@ -10,6 +10,8 @@ Download `body-movement-offline.zip`, extract it, and open `index.html`. Alterna
 
 ## Interaction
 
+- Operation guidance and the accessible muscle index sit above the workspace; layer/camera controls sit above the model. Predictions occupy the left 01 panel, with concise A–P letter choices.
+- Running and dancing targets show separate left/right side profiles to avoid the two limbs hiding each other. Model letter badges sit on outer rails; each leader ends on an actual front-facing muscle mesh vertex and remains attached during movement/camera rotation.
 - One enlarged target render replaces the old initial / target / current thumbnails. The initial posture and assessed transitions remain specified in text.
 - **Hold a muscle or its letter on the diagram to contract it; release to stop.** Longer holds produce greater simulated movement. A tap advances by a small step. There is no destination-angle slider, contraction slider or joint dropdown. Holding a marker directly selects its pair.
 - In Guided Challenge, first choose the contracting and relaxing member of each assessed pair, then submit before operating. The written explanation is self-assessed against an explicitly revealed answer, never graded by keywords. Explore allows immediate manipulation.
@@ -58,4 +60,4 @@ The server binds only to loopback, port 8000. Distribute `dist/index.html`; rebu
 Verified in Node.js 24 and headless Chromium with WebGL:
 
 - Eight model tests: sixteen labels; independent bidirectional movement; ten reachable transitions in either joint order; hinge limits; fixed bone lengths and attached hands/feet; knee angle alignment and no seated upward over-rotation; elbow/wrist local angles; ankle directions; camera-independent tolerance; bilingual dictionary completeness.
-- Browser checks: enlarged single target and removed old controls; prediction gate; direct holding and release; longer hold produces greater movement; all sixteen diagram markers control the correct joint/direction; keyboard hold and partial replay; language/state retention; immutable records; running/dancing/hand/foot reference rendering; CSV; narrow layout; explicit WebGL fallback; no JavaScript errors.
+- Browser checks: enlarged single target and removed old controls; prediction gate; direct holding and release; longer hold produces greater movement; all sixteen diagram markers control the correct joint/direction; keyboard hold and partial replay; language/state retention; immutable records; running/dancing/hand/foot reference rendering; CSV; narrow layout; non-overlapping label rails and mesh-accurate endpoints across multiple poses/camera angles; explicit WebGL fallback; no JavaScript errors.

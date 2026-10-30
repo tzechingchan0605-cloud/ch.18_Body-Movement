@@ -18,7 +18,7 @@ let referenceKey='';
 function render(){
  scene.render(pose,{yaw,pitch,layers,active,t,joint:selected,close,target:task.to});
  const key=task.id+lang+$('target').clientWidth;
- if(referenceKey!==key){referenceKey=key;targetRenderer.render(task.to,{yaw:-25,pitch:8,layers:{skeleton:true,muscle:true,tendon:true,labels:true},t,mini:true})}
+ if(referenceKey!==key){referenceKey=key;targetRenderer.render(task.to,{yaw:task.supplementary?-90:-25,pitch:task.supplementary?0:8,sideReference:task.supplementary,layers:{skeleton:true,muscle:true,tendon:true,labels:true},t,mini:true})}
 }
 function update(){
  $('elapsed').textContent=`${t('time')} ${elapsed.toFixed(1)} s`;
@@ -38,7 +38,7 @@ function translate(){
  document.querySelectorAll('[data-t]').forEach(e=>e.textContent=t(e.dataset.t));
  for(const id of ['zh','en']){$(id).classList.toggle('active',lang===id);$(id).setAttribute('aria-pressed',String(lang===id))}
  $('task').replaceChildren(...tasks.map(q=>option(q.id,t(q.id))));$('task').value=task.id;
- $('taskText').textContent=(task.supplementary?t('rehearsal')+' ':'')+task.joint.map(j=>`${t(j)}: ${t('start')} ${task.from[j]}° → ${t('end')} ${task.to[j]}°`).join(' · ');
+ $('taskText').textContent=task.joint.map(j=>`${t(j)}: ${t('start')} ${task.from[j]}° → ${t('end')} ${task.to[j]}°`).join(' · ');
  const oldSpeed=$('speed').value||'1';$('speed').replaceChildren(option('1',t('normal')),option('.5',t('slower')),option('.25',t('slowest')));$('speed').value=oldSpeed;$('speed').setAttribute('aria-label',t('view'));
  $('scene').setAttribute('aria-label',t('holdHelp'));
  $('layers').replaceChildren();
@@ -55,8 +55,8 @@ function translate(){
   $('muscles').append(b);
  }
  $('predictions').replaceChildren();
- for(const j of task.joint){const row=document.createElement('div');row.className='predictionRow';const label=document.createElement('label');label.textContent=t(j);const select=document.createElement('select');select.id='prediction-'+j;label.htmlFor=select.id;select.setAttribute('aria-label',t('prediction')+' '+t(j));select.replaceChildren(option('',t('choose')),...['flex','extend'].map(k=>option(k,pairText(j,k))));select.value=predictions[j];select.disabled=attempted;select.onchange=()=>{predictions[j]=select.value};row.append(label,select);$('predictions').append(row)}
- $('guide').hidden=mode!=='guided';$('attempt').disabled=attempted;
+ for(const j of task.joint){const row=document.createElement('div');row.className='predictionRow';const label=document.createElement('label');label.textContent=t(j);const select=document.createElement('select');select.id='prediction-'+j;label.htmlFor=select.id;select.setAttribute('aria-label',t('prediction')+' '+t(j));select.replaceChildren(option('',t('choose')),...['flex','extend'].map(k=>option(k,`${muscleID(j,k)} ${t('contracting')} / ${muscleID(j,k==='flex'?'extend':'flex')} ${t('relaxing')}`)));select.value=predictions[j];select.disabled=attempted;select.onchange=()=>{predictions[j]=select.value};row.append(label,select);$('predictions').append(row)}
+ document.querySelector('.controls').hidden=mode!=='guided';document.querySelector('.layout').classList.toggle('exploring',mode==='explore');$('guide').hidden=mode!=='guided';$('reflection').hidden=mode!=='guided';$('attempt').disabled=attempted;
  $('explore').classList.toggle('active',mode==='explore');$('guided').classList.toggle('active',mode==='guided');
  $('glossary').replaceChildren(...glossary.map(a=>{const s=document.createElement('span');s.textContent=lang==='zh'?a[0]+' · '+a[1]:a[1]+' · '+a[0];return s}));
  drawRecords();update();
